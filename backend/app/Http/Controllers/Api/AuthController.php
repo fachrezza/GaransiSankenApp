@@ -64,12 +64,5 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 
-    public function dashboard(Request $request)
-    {
-        return response()->json([
-            'success' => true,
-            'message' => 'Dashboard data',
-            'user' => $request->user(),
-        ]);
-    }
+
 }
