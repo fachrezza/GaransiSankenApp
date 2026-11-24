@@ -114,6 +114,48 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'dummy_iak' => [
+            'driver' => env('DB_PT_DRIVER', 'mysql'),
+            'host' => env('DB_PT_HOST', '127.0.0.1'),
+            'port' => env('DB_PT_PORT', '3306'),
+            'database' => env('DB_IAK_DATABASE', 'dummy_iak'),
+            'username' => env('DB_PT_USERNAME', 'root'),
+            'password' => env('DB_PT_PASSWORD', ''),
+            'charset' => env('DB_PT_CHARSET', 'utf8mb4'),
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+        ],
+
+        'dummy_sam' => [
+            'driver' => env('DB_PT_DRIVER', 'mysql'),
+            'host' => env('DB_PT_HOST', '127.0.0.1'),
+            'port' => env('DB_PT_PORT', '3306'),
+            'database' => env('DB_SAM_DATABASE', 'dummy_sam'),
+            'username' => env('DB_PT_USERNAME', 'root'),
+            'password' => env('DB_PT_PASSWORD', ''),
+            'charset' => env('DB_PT_CHARSET', 'utf8mb4'),
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+        ],
+
+        'dummy_rvg' => [
+            'driver' => env('DB_PT_DRIVER', 'mysql'),
+            'host' => env('DB_PT_HOST', '127.0.0.1'),
+            'port' => env('DB_PT_PORT', '3306'),
+            'database' => env('DB_RVG_DATABASE', 'dummy_rvg'),
+            'username' => env('DB_PT_USERNAME', 'root'),
+            'password' => env('DB_PT_PASSWORD', ''),
+            'charset' => env('DB_PT_CHARSET', 'utf8mb4'),
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+        ],
+
     ],
 
     /*
