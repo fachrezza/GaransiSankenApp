@@ -48,8 +48,14 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken($request->device_name)->plainTextToken;
+        $permissions = $this->loadUserPermissions($user);
 
-        return response()->json(['message' => 'Login successful', 'user' => $user, 'token' => $token], 200);
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => $user,
+            'permissions' => $permissions,
+            'token' => $token,
+        ], 200);
     }
 
     public function logout(Request $request)
@@ -61,8 +67,19 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user();
+        $permissions = $this->loadUserPermissions($user);
+
+        return response()->json([
+            ...$user->toArray(),
+            'permissions' => $permissions,
+        ]);
     }
 
+    private function loadUserPermissions(User $user)
+    {
+        $user->load('roles.permissions');
 
+        return $user->roles->flatMap->permissions->pluck('name')->unique()->values();
+    }
 }

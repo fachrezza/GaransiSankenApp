@@ -187,4 +187,100 @@ class RolePermissionApiTest extends TestCase
             ->assertOk()
             ->assertJson(['success' => true]);
     }
+
+    public function test_superadmin_can_update_and_delete_permissions(): void
+    {
+        $superadmin = User::factory()->create(['is_superadmin' => true]);
+        Sanctum::actingAs($superadmin);
+
+        $permission = Permission::create(['name' => 'view-omset', 'description' => 'Lama']);
+
+        $this->putJson("/api/permissions/{$permission->id}", [
+            'name' => 'view-laporan-omset',
+            'description' => 'Lihat laporan omset',
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.permission.name', 'view-laporan-omset');
+
+        $this->deleteJson("/api/permissions/{$permission->id}")
+            ->assertOk()
+            ->assertJson(['success' => true, 'data' => null]);
+
+        $this->assertDatabaseMissing('permissions', ['id' => $permission->id]);
+    }
+
+    public function test_superadmin_can_crud_users_and_cannot_delete_self(): void
+    {
+        $superadmin = User::factory()->create(['is_superadmin' => true]);
+        $role = Role::create(['name' => 'finance']);
+        Sanctum::actingAs($superadmin);
+
+        $createResponse = $this->postJson('/api/users', [
+            'name' => 'Staff Finance',
+            'email' => 'finance@sanken.test',
+            'password' => 'password123',
+            'roles' => [$role->id],
+        ]);
+
+        $createResponse->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.email', 'finance@sanken.test')
+            ->assertJsonCount(1, 'data.user.roles');
+
+        $userId = $createResponse->json('data.user.id');
+
+        $this->getJson('/api/users')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(2, 'data.users');
+
+        $this->putJson("/api/users/{$userId}", [
+            'name' => 'Senior Finance',
+            'roles' => [],
+        ])->assertOk()
+            ->assertJsonPath('data.user.name', 'Senior Finance')
+            ->assertJsonCount(0, 'data.user.roles');
+
+        // Cannot delete self
+        $this->deleteJson("/api/users/{$superadmin->id}")
+            ->assertUnprocessable()
+            ->assertJson(['success' => false]);
+
+        $this->deleteJson("/api/users/{$userId}")
+            ->assertOk()
+            ->assertJson(['success' => true, 'data' => null]);
+
+        $this->assertDatabaseMissing('users', ['id' => $userId]);
+    }
+
+    public function test_login_and_me_return_roles_and_flat_permissions(): void
+    {
+        $permission = Permission::create(['name' => 'view-laporan-omset']);
+        $role = Role::create(['name' => 'finance']);
+        $role->permissions()->attach($permission->id);
+
+        $user = User::factory()->create([
+            'email' => 'staff@sanken.test',
+            'password' => bcrypt('password123'),
+            'is_superadmin' => false,
+        ]);
+        $user->roles()->attach($role->id);
+
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => 'staff@sanken.test',
+            'password' => 'password123',
+            'device_name' => 'postman',
+        ]);
+
+        $loginResponse->assertOk()
+            ->assertJsonPath('permissions', ['view-laporan-omset'])
+            ->assertJsonCount(1, 'user.roles');
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('permissions', ['view-laporan-omset'])
+            ->assertJsonCount(1, 'roles');
+    }
 }
