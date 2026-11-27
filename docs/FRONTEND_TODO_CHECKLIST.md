@@ -57,6 +57,30 @@ Dokumen ini merangkum seluruh hal yang perlu **diubah** dan **ditambahkan** di a
     - Tampilkan **hanya jika** `can('approve-or')`.
     - `Approve OR` → `POST /api/approve-or/{pt_code}/{toko}/approve` (opsional body `{"notes": "..."}`).
     - `Reject` → `POST /api/approve-or/{pt_code}/{toko}/reject`.
+  - **Contoh Response Asli `GET /api/approve-or/IAK/1DIM02`:**
+    ```json
+    {
+      "success": true,
+      "data": {
+        "pt_code": "IAK",
+        "pt_name": "PT Istana Argo Kencana",
+        "toko": "1DIM02",
+        "group_code": "1DIM01",
+        "related_stores": ["1DIM01", "1DIM02"],
+        "limit": 0,
+        "nilai_or": 81871380,
+        "belum_jadi_faktur": 0,
+        "piutang_faktur": 314838639,
+        "total_hutang": 314838639,
+        "debt_by_pt": {
+          "IAK": { "belum_jadi_faktur": 0, "piutang_faktur": 314838639, "total": 314838639 },
+          "SAM": { "belum_jadi_faktur": 0, "piutang_faktur": 0, "total": 0 },
+          "RVG": { "belum_jadi_faktur": 0, "piutang_faktur": 0, "total": 0 }
+        },
+        "is_over_limit": false
+      }
+    }
+    ```
 
 ### C. Halaman `Operasional Produk`
 - **Sumber Data:** `GET /api/products?pt={kode}&category={kategori}&search={keyword}`

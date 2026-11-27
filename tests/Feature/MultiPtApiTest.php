@@ -44,10 +44,10 @@ class MultiPtApiTest extends TestCase
                 $table->date('so_dtso');
                 $table->string('so_cekstat', 10)->nullable()->default('');
                 $table->string('so_status', 5)->default('@');
-                $table->unsignedBigInteger('approved_by_user_id')->nullable();
-                $table->timestamp('approved_at')->nullable();
-                $table->string('notes')->nullable();
-                $table->timestamps();
+                $table->string('so_huser')->nullable();
+                $table->date('so_appdate')->nullable();
+                $table->time('so_apptime')->nullable();
+                $table->string('so_ket1')->nullable();
             });
             $schema->create('or131a', function ($table) {
                 $table->id();

@@ -7,6 +7,7 @@ use App\Services\PtDatabaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ApproveOrController extends Controller
 {
@@ -94,16 +95,16 @@ class ApproveOrController extends Controller
             ->where('so_dtso', '>=', '2021-01-01')
             ->sum('so_harga');
 
-        // Step 2: Check ar010a for store & group code (mp_custno) + credit limit (mp_t_cost)
-        $customer = $db->table('ar010a')
-            ->select('mp_nocust', 'mp_custno', 'mp_t_cost')
-            ->where('mp_nocust', $toko)
-            ->first();
+        // Step 2: Check ar010a (if exists in PT DB) for store & group code (mp_custno) + credit limit (mp_t_cost)
+        $hasAr010a = Schema::connection($entity['connection'])->hasTable('ar010a');
+        $customer = $hasAr010a
+            ? $db->table('ar010a')->select('mp_nocust', 'mp_custno', 'mp_t_cost')->where('mp_nocust', $toko)->first()
+            : null;
 
         $groupCode = $customer?->mp_custno ?: null;
         $limit = (int) ($customer?->mp_t_cost ?? 0);
 
-        $relatedStores = $groupCode
+        $relatedStores = ($hasAr010a && $groupCode)
             ? $db->table('ar010a')->where('mp_custno', $groupCode)->pluck('mp_nocust')->all()
             : [$toko];
 
@@ -119,9 +120,9 @@ class ApproveOrController extends Controller
         foreach (PtDatabaseService::ENTITIES as $ptCode => $ptInfo) {
             $ptDb = DB::connection($ptInfo['connection']);
 
-            $ptStores = $groupCode
+            $ptStores = ($groupCode && Schema::connection($ptInfo['connection'])->hasTable('ar010a'))
                 ? $ptDb->table('ar010a')->where('mp_custno', $groupCode)->pluck('mp_nocust')->all()
-                : [$toko];
+                : $relatedStores;
 
             if (empty($ptStores)) {
                 $debtByPt[$ptCode] = ['belum_jadi_faktur' => 0, 'piutang_faktur' => 0, 'total' => 0];
@@ -220,13 +221,16 @@ class ApproveOrController extends Controller
         }
 
         $now = now();
-        $affected = $pendingQuery->update([
+        $updateData = [
             'so_cekstat' => $cekStat,
-            'approved_by_user_id' => $request->user()->id,
-            'approved_at' => $now,
-            'notes' => $validated['notes'] ?? null,
-            'updated_at' => $now,
-        ]);
+            'so_appdate' => $now->toDateString(),
+            'so_apptime' => $now->format('H:i:s'),
+            'so_huser' => $request->user()->name,
+        ];
+        if (! empty($validated['notes'])) {
+            $updateData['so_ket1'] = $validated['notes'];
+        }
+        $affected = $pendingQuery->update($updateData);
 
         $actionLabel = $cekStat === 'Y' ? 'Approve OR' : 'Reject OR';
         $db->table('activity_logs')->insert([
