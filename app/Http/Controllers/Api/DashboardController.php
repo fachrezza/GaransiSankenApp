@@ -7,6 +7,7 @@ use App\Models\Banner;
 use App\Services\PtDatabaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -21,10 +22,12 @@ class DashboardController extends Controller
         $pendingOrCount = 0;
 
         foreach ($allowedPts as $pt) {
-            $stats = \Illuminate\Support\Facades\DB::connection($pt['connection'])
-                ->table('or_requests')
-                ->selectRaw("COALESCE(SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END), 0) as total_omset")
-                ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count")
+            $stats = DB::connection($pt['connection'])
+                ->table('or130a')
+                ->where('so_status', '@')
+                ->where('so_dtso', '>=', '2021-01-01')
+                ->selectRaw("COALESCE(SUM(CASE WHEN so_cekstat = 'Y' THEN so_harga ELSE 0 END), 0) as total_omset")
+                ->selectRaw("COUNT(DISTINCT CASE WHEN COALESCE(so_cekstat, '') = '' THEN so_nocust END) as pending_count")
                 ->first();
 
             $totalOmset += (int) ($stats->total_omset ?? 0);

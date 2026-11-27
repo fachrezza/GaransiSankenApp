@@ -22,9 +22,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/banners', [BannerController::class, 'index']);
 
     Route::get('/approve-or', [ApproveOrController::class, 'index']);
-    Route::post('/approve-or/{pt}/{id}/approve', [ApproveOrController::class, 'approve'])
+    Route::get('/approve-or/{pt}/{toko}', [ApproveOrController::class, 'show']);
+    Route::post('/approve-or/{pt}/{toko}/approve', [ApproveOrController::class, 'approve'])
         ->middleware('permission:approve-or');
-    Route::post('/approve-or/{pt}/{id}/reject', [ApproveOrController::class, 'reject'])
+    Route::post('/approve-or/{pt}/{toko}/reject', [ApproveOrController::class, 'reject'])
         ->middleware('permission:approve-or');
 
     Route::get('/products', [ProductController::class, 'index']);

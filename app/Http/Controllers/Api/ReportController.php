@@ -31,9 +31,10 @@ class ReportController extends Controller
 
         foreach ($targetPts as $pt) {
             $db = DB::connection($pt['connection']);
-            $orStats = $db->table('or_requests')
-                ->where('status', 'approved')
-                ->selectRaw('COUNT(*) as count, COALESCE(SUM(amount), 0) as total')
+            $orStats = $db->table('or130a')
+                ->where('so_status', '@')
+                ->where('so_cekstat', 'Y')
+                ->selectRaw('COUNT(*) as count, COALESCE(SUM(so_harga), 0) as total')
                 ->first();
 
             $approvedOrCount += (int) ($orStats->count ?? 0);

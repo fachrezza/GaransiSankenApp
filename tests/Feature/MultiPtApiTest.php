@@ -29,21 +29,60 @@ class MultiPtApiTest extends TestCase
             DB::purge($conn);
 
             $schema = Schema::connection($conn);
-            $schema->create('or_requests', function ($table) {
+            $schema->create('tb_cab', function ($table) {
+                $table->string('kd_cab', 10)->primary();
+                $table->string('nm_cab');
+            });
+            $schema->create('or130a', function ($table) {
                 $table->id();
-                $table->string('document_no')->unique();
-                $table->string('branch_name');
-                $table->string('customer_code')->nullable();
-                $table->string('customer_name');
-                $table->unsignedBigInteger('amount');
-                $table->string('status')->default('pending');
-                $table->date('due_date')->nullable();
+                $table->string('so_noso')->unique();
+                $table->string('so_nocust');
+                $table->string('so_name');
+                $table->string('so_kota')->nullable();
+                $table->unsignedBigInteger('so_harga')->default(0);
+                $table->date('so_hdate');
+                $table->date('so_dtso');
+                $table->string('so_cekstat', 10)->nullable()->default('');
+                $table->string('so_status', 5)->default('@');
                 $table->unsignedBigInteger('approved_by_user_id')->nullable();
                 $table->timestamp('approved_at')->nullable();
                 $table->string('notes')->nullable();
                 $table->timestamps();
             });
-
+            $schema->create('or131a', function ($table) {
+                $table->id();
+                $table->string('so_noso');
+                $table->string('so_kode')->nullable();
+                $table->unsignedInteger('so_qty')->default(1);
+                $table->unsignedBigInteger('so_harga')->default(0);
+                $table->timestamps();
+            });
+            $schema->create('ar010a', function ($table) {
+                $table->string('mp_nocust')->primary();
+                $table->string('mp_custno')->nullable();
+                $table->unsignedBigInteger('mp_t_cost')->default(0);
+                $table->timestamps();
+            });
+            $schema->create('sa131a', function ($table) {
+                $table->id();
+                $table->string('do_grdo', 10);
+                $table->string('do_nocust');
+                $table->string('do_nofak')->nullable()->default('');
+                $table->string('do_status', 5)->nullable()->default('');
+                $table->string('do_statux', 5)->default('@');
+                $table->unsignedInteger('do_qty')->default(0);
+                $table->unsignedBigInteger('do_harga')->default(0);
+                $table->timestamps();
+            });
+            $schema->create('ar020a', function ($table) {
+                $table->id();
+                $table->string('fa_grfak', 10);
+                $table->string('fa_nocust');
+                $table->string('fa_status', 5)->default('@');
+                $table->unsignedBigInteger('fa_harga')->default(0);
+                $table->unsignedBigInteger('fa_hgkas')->default(0);
+                $table->timestamps();
+            });
             $schema->create('products', function ($table) {
                 $table->id();
                 $table->string('sku')->unique();
@@ -53,7 +92,6 @@ class MultiPtApiTest extends TestCase
                 $table->unsignedInteger('stock')->default(0);
                 $table->timestamps();
             });
-
             $schema->create('activity_logs', function ($table) {
                 $table->id();
                 $table->string('type')->default('info');
@@ -64,22 +102,64 @@ class MultiPtApiTest extends TestCase
             });
         }
 
-        DB::connection('dummy_iak')->table('or_requests')->insert([
-            'document_no' => 'OR/IAK/001',
-            'branch_name' => 'Jakarta Pusat',
-            'customer_name' => 'Toko IAK',
-            'amount' => 1000000,
-            'status' => 'pending',
+        $today = now()->toDateString();
+
+        // Seed IAK: 1DIM02 (group 1DIM01, limit 20jt)
+        DB::connection('dummy_iak')->table('tb_cab')->insert(['kd_cab' => '1', 'nm_cab' => 'Jakarta Pusat']);
+        DB::connection('dummy_iak')->table('ar010a')->insert([
+            ['mp_nocust' => '1DIM01', 'mp_custno' => '1DIM01', 'mp_t_cost' => 20000000],
+            ['mp_nocust' => '1DIM02', 'mp_custno' => '1DIM01', 'mp_t_cost' => 20000000],
+        ]);
+        DB::connection('dummy_iak')->table('or130a')->insert([
+            'so_noso' => 'SO/IAK/001',
+            'so_nocust' => '1DIM02',
+            'so_name' => 'Toko Dimensi 2',
+            'so_kota' => 'Jakarta',
+            'so_harga' => 10000000,
+            'so_hdate' => $today,
+            'so_dtso' => $today,
+            'so_cekstat' => '',
+            'so_status' => '@',
+        ]);
+        DB::connection('dummy_iak')->table('or131a')->insert(['so_noso' => 'SO/IAK/001', 'so_qty' => 1, 'so_harga' => 10000000]);
+        DB::connection('dummy_iak')->table('sa131a')->insert([
+            'do_grdo' => 'DO1',
+            'do_nocust' => '1DIM01',
+            'do_nofak' => '',
+            'do_status' => '@',
+            'do_statux' => '@',
+            'do_qty' => 2,
+            'do_harga' => 5000000,
         ]);
 
-        DB::connection('dummy_sam')->table('or_requests')->insert([
-            'document_no' => 'OR/SAM/001',
-            'branch_name' => 'Bandung',
-            'customer_name' => 'Toko SAM',
-            'amount' => 2000000,
-            'status' => 'approved',
+        // Seed SAM: 2SAM01 pending OR + 1DIM02 in ar010a & debt in ar020a
+        DB::connection('dummy_sam')->table('tb_cab')->insert(['kd_cab' => '2', 'nm_cab' => 'Bandung']);
+        DB::connection('dummy_sam')->table('ar010a')->insert([
+            'mp_nocust' => '1DIM02',
+            'mp_custno' => '1DIM01',
+            'mp_t_cost' => 20000000,
+        ]);
+        DB::connection('dummy_sam')->table('or130a')->insert([
+            'so_noso' => 'SO/SAM/001',
+            'so_nocust' => '2SAM01',
+            'so_name' => 'Toko SAM',
+            'so_kota' => 'Bandung',
+            'so_harga' => 2000000,
+            'so_hdate' => $today,
+            'so_dtso' => $today,
+            'so_cekstat' => '',
+            'so_status' => '@',
+        ]);
+        DB::connection('dummy_sam')->table('or131a')->insert(['so_noso' => 'SO/SAM/001', 'so_qty' => 1, 'so_harga' => 2000000]);
+        DB::connection('dummy_sam')->table('ar020a')->insert([
+            'fa_grfak' => 'FT',
+            'fa_nocust' => '1DIM02',
+            'fa_status' => '@',
+            'fa_harga' => 10000000,
+            'fa_hgkas' => 2000000,
         ]);
 
+        // Seed RVG product
         DB::connection('dummy_rvg')->table('products')->insert([
             'sku' => 'SKN-RVG-1',
             'name' => 'AC Sanken',
@@ -89,7 +169,7 @@ class MultiPtApiTest extends TestCase
         ]);
     }
 
-    public function test_user_only_sees_permitted_pt_data_and_superadmin_sees_all(): void
+    public function test_user_only_sees_permitted_pt_or_list_and_credit_check_aggregates_group_debt(): void
     {
         $permIak = Permission::create(['name' => 'view-db-iak']);
         $roleIak = Role::create(['name' => 'admin-iak']);
@@ -103,25 +183,28 @@ class MultiPtApiTest extends TestCase
         $this->getJson('/api/approve-or')
             ->assertOk()
             ->assertJsonPath('data.show_all_tab', false)
-            ->assertJsonCount(1, 'data.allowed_pts')
             ->assertJsonCount(1, 'data.items')
-            ->assertJsonPath('data.items.0.pt_code', 'IAK');
+            ->assertJsonPath('data.items.0.pt_code', 'IAK')
+            ->assertJsonPath('data.items.0.cabang', 'Jakarta Pusat')
+            ->assertJsonPath('data.items.0.toko', '1DIM02')
+            ->assertJsonPath('data.items.0.harga', 10000000);
 
-        // Cannot query SAM
-        $this->getJson('/api/approve-or?pt=SAM')->assertForbidden();
-
-        // Superadmin sees all 3 PTs
-        $superadmin = User::factory()->create(['is_superadmin' => true]);
-        Sanctum::actingAs($superadmin);
-
-        $this->getJson('/api/approve-or')
+        // Credit check: 5jt (belum jadi faktur / IAK DO) + 8jt (piutang faktur / SAM AR) = 13jt, + 10jt OR > 20jt limit
+        $this->getJson('/api/approve-or/IAK/1DIM02')
             ->assertOk()
-            ->assertJsonPath('data.show_all_tab', true)
-            ->assertJsonCount(3, 'data.allowed_pts')
-            ->assertJsonCount(2, 'data.items');
+            ->assertJsonPath('data.group_code', '1DIM01')
+            ->assertJsonPath('data.limit', 20000000)
+            ->assertJsonPath('data.belum_jadi_faktur', 5000000)
+            ->assertJsonPath('data.piutang_faktur', 8000000)
+            ->assertJsonPath('data.total_hutang', 13000000)
+            ->assertJsonPath('data.nilai_or', 10000000)
+            ->assertJsonPath('data.is_over_limit', true);
+
+        // Forbidden for SAM
+        $this->getJson('/api/approve-or?pt=SAM')->assertForbidden();
     }
 
-    public function test_approve_or_requires_permission_and_pt_access(): void
+    public function test_approve_or_requires_permission_and_updates_so_cekstat(): void
     {
         $permIak = Permission::create(['name' => 'view-db-iak']);
         $permApprove = Permission::create(['name' => 'approve-or']);
@@ -136,15 +219,21 @@ class MultiPtApiTest extends TestCase
         $viewer->roles()->attach($viewerRole->id);
 
         Sanctum::actingAs($viewer);
-        $this->postJson('/api/approve-or/IAK/1/approve')->assertForbidden();
+        $this->postJson('/api/approve-or/IAK/1DIM02/approve')->assertForbidden();
 
         $approver = User::factory()->create(['is_superadmin' => false]);
         $approver->roles()->attach($approverRole->id);
 
         Sanctum::actingAs($approver);
-        $this->postJson('/api/approve-or/IAK/1/approve', ['notes' => 'OK'])
+        $this->postJson('/api/approve-or/IAK/1DIM02/approve', ['notes' => 'Disetujui'])
             ->assertOk()
-            ->assertJsonPath('data.item.status', 'approved');
+            ->assertJsonPath('data.status', 'Y')
+            ->assertJsonPath('data.updated_count', 1);
+
+        // No longer appears in pending list
+        $this->getJson('/api/approve-or')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.items');
     }
 
     public function test_products_reports_dashboard_and_banners_endpoints(): void
@@ -161,7 +250,7 @@ class MultiPtApiTest extends TestCase
         $this->getJson('/api/dashboard')
             ->assertOk()
             ->assertJsonCount(1, 'data.banners')
-            ->assertJsonPath('data.summary.total_omset', 2000000);
+            ->assertJsonPath('data.summary.pending_or_count', 2);
 
         $this->getJson('/api/products')
             ->assertOk()
